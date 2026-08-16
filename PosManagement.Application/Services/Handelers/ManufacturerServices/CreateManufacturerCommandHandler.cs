@@ -20,7 +20,7 @@ namespace PosManagement.Application.Services.Handelers.ManufacturerServices
         public async Task<Result<int>> Handle(CreateManufacturer request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Name))
-                return  Error.Validation("Manufacturer.EmptynName", "Manufacturer Name Is Requierd" );
+                return  Error.Validation("Manufacturer.EmptyName", "Manufacturer Name Is Requierd" );
 
             var Manufacturer = new Manufacturer
             {

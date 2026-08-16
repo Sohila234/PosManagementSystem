@@ -1,6 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using PosManagement.Api.Endpoints;
 using PosManagement.Domain.Interfaces;
 using PosManagement.Infrastructure.Data;
 using PosManagement.Infrastructure.Repositories;
@@ -21,6 +22,11 @@ namespace PosManagement.Api
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddMediatR(x=>
             x.RegisterServicesFromAssembly(typeof(PosManagement.Application.Common.Result).Assembly));
+            builder.Services.AddAutoMapper(Cfg => { }, AppDomain.CurrentDomain.GetAssemblies());
+            builder.Services.ConfigureHttpJsonOptions(options =>
+            {
+                options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+            });
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -42,7 +48,13 @@ namespace PosManagement.Api
             app.UseAuthorization();
 
 
-            app.MapControllers();
+          
+
+            app.MapVendorEndPoint();
+            app.MapManufacturerEndpoints();
+            app.MapModelEndpoints();
+            app.MapPosDeviceEndPoints();
+
 
             app.Run();
         }

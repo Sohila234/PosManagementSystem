@@ -19,7 +19,7 @@ namespace PosManagement.Application.Services.Handelers.ManufacturerServices
         }
         public async Task<Result<IReadOnlyList<Manufacturer>>> Handle(GetAllManufacturers request, CancellationToken cancellationToken)
         {
-            var manufacturers = await unitOfWork.GetRepository<Manufacturer>().GetAllAsync(cancellationToken);
+            var manufacturers = await unitOfWork.GetRepository<Manufacturer>().GetAllAsync();
             return Result<IReadOnlyList<Manufacturer>>.Ok(manufacturers);
         }
     }

@@ -4,12 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace PosManagement.Application.Services.Commands.Manufacturer
+namespace PosManagement.Application.Services.Commands.Vendor
 {
-    public record UpdateManufacturer : IRequest<Result>
+    public record UpdateVendor :IRequest<Result>
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
     }
-   
 }

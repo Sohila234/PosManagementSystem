@@ -29,14 +29,29 @@ namespace PosManagement.Infrastructure.Repositories
             posDB.Set<T>().Update(entity);
         }
 
-        public async Task<IReadOnlyList<T>> GetAllAsync(CancellationToken ct =default)
+        public async Task<IReadOnlyList<T>> GetAllAsync(
+     Func<IQueryable<T>, IQueryable<T>>? include = null,
+     CancellationToken cancellationToken = default)
         {
-            return await posDB.Set<T>().AsNoTracking().ToListAsync(ct);
+            IQueryable<T> query = posDB.Set<T>();
+
+            if (include != null)
+            {
+                query = include(query);
+            }
+
+            return await query.ToListAsync(cancellationToken);
         }
 
-        public async Task<T?> GetByIdAsync(int Id, CancellationToken ct = default)
+        public async Task<T?> GetByIdAsync(int Id, CancellationToken ct = default , Func<IQueryable<T>, IQueryable<T>>? include = null)
         {
-            return await posDB.Set<T>().FindAsync(Id , ct);
+            IQueryable<T> query = posDB.Set<T>();
+
+            if (include != null)
+            {
+                query = include(query);
+            }
+            return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == Id, ct);
         }
 
         

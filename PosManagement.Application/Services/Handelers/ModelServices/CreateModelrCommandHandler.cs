@@ -1,0 +1,40 @@
+﻿using MediatR;
+using PosManagement.Application.Common;
+using PosManagement.Application.Services.Commands.Manufacturer;
+using PosManagement.Application.Services.Commands.Model;
+using PosManagement.Domain.Entities;
+using PosManagement.Domain.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace PosManagement.Application.Services.Handelers.ModelServices
+{
+    public class CreateModelrCommandHandler : IRequestHandler<CreateModel, Result<int>>
+    {
+        private readonly IUnitOfWork unitOfWork;
+
+        public CreateModelrCommandHandler(IUnitOfWork unitOfWork)
+        {
+            this.unitOfWork = unitOfWork;
+        }
+        public async Task<Result<int>> Handle(CreateModel request, CancellationToken cancellationToken)
+        {
+
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return Result<int>.Fail(Error.Validation("Model.EmptyName", "Model Name Is Required."));
+            var manufacturer = await unitOfWork.GetRepository<Manufacturer>().GetByIdAsync(request.ManufacturerId, cancellationToken);
+            if (manufacturer == null)
+                return Result<int>.Fail(Error.NotFound("Manufacturer.NotFound", "Manufacturer not found."));
+
+            var modell = new Model
+            {
+                Name = request.Name,
+                ManufacturerId = request.ManufacturerId
+            };
+            unitOfWork.GetRepository<Model>().Add(modell);
+            await unitOfWork.SaveChangesAsync();
+            return modell.Id;
+        }
+    }
+}
