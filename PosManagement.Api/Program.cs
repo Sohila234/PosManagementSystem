@@ -7,6 +7,7 @@ using PosManagement.Infrastructure.Data;
 using PosManagement.Infrastructure.Repositories;
 
 
+
 namespace PosManagement.Api
 {
     public class Program
