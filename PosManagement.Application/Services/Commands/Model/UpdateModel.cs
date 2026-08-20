@@ -6,5 +6,8 @@ using System.Text;
 
 namespace PosManagement.Application.Services.Commands.Model
 {
-    public record UpdateModel(int Id, string Name, int ManufacturerId) : IRequest<Result>;
+    public record UpdateModel(
+    int ModelId,
+    string NewName
+) : IRequest<Result<bool>>;
 }

@@ -21,20 +21,26 @@ namespace PosManagement.Application.Services.Handelers.ModelServices
         public async Task<Result<int>> Handle(CreateModel request, CancellationToken cancellationToken)
         {
 
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Result<int>.Fail(Error.Validation("Model.EmptyName", "Model Name Is Required."));
-            var manufacturer = await unitOfWork.GetRepository<Manufacturer>().GetByIdAsync(request.ManufacturerId, cancellationToken);
-            if (manufacturer == null)
-                return Result<int>.Fail(Error.NotFound("Manufacturer.NotFound", "Manufacturer not found."));
+            var manufacturer =
+        await unitOfWork
+            .GetRepository<Manufacturer>()
+            .GetByIdAsync(
+                request.ManufacturerId,
+                cancellationToken);
 
-            var modell = new Model
+            if (manufacturer == null)
             {
-                Name = request.Name,
-                ManufacturerId = request.ManufacturerId
-            };
-            unitOfWork.GetRepository<Model>().Add(modell);
-            await unitOfWork.SaveChangesAsync();
-            return modell.Id;
+                return Result<int>.Fail(
+                    Error.NotFound(
+                        "Manufacturer.NotFound",
+                        "Manufacturer not found."));
+            }
+
+            var model = manufacturer.AddModel(request.Name);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return model.Id;
         }
     }
 }

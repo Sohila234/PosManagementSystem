@@ -23,7 +23,34 @@ namespace PosManagement.Application.Services.Handelers.ManufacturerServices
             var manufacturer = await unitOfWork.GetRepository<Manufacturer>().GetByIdAsync(request.Id, cancellationToken);
             if (manufacturer == null)
                 return Result.Fail(Error.NotFound("Manufacturer.NotFound", "Manufacturer not found."));
-            manufacturer.Name = request.Name;
+            var manufacturers = await unitOfWork
+            .GetRepository<Manufacturer>()
+            .GetAllAsync(cancellationToken: cancellationToken);
+
+            bool manufacturerExists = manufacturers.Any(m =>
+                m.Id != request.Id &&
+                m.Name.Equals(
+                    request.Name,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (manufacturerExists)
+            {
+                return Result.Fail(
+                    Error.Conflict(
+                        "Manufacturer.AlreadyExists",
+                        "A manufacturer with this name already exists."));
+            }
+            try
+            {
+                manufacturer.ChangeName(request.Name);
+            }
+            catch (ArgumentException ex)
+            {
+                return Result.Fail(
+                    Error.Validation(
+                        "Manufacturer.EmptyName",
+                        ex.Message));
+            }
             unitOfWork.GetRepository<Manufacturer>().Update(manufacturer);
             await unitOfWork.SaveChangesAsync(cancellationToken);
 

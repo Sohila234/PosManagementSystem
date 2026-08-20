@@ -3,13 +3,11 @@ using PosManagement.Application.Common;
 using PosManagement.Application.Services.Commands.Vendor;
 using PosManagement.Domain.Entities;
 using PosManagement.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace PosManagement.Application.Services.Handelers.VendorServices
 {
-    public class CreateVendorCommandHandler : IRequestHandler<CreateVendor, Result<int>>
+    public class CreateVendorCommandHandler
+        : IRequestHandler<CreateVendor, Result<int>>
     {
         private readonly IUnitOfWork unitOfWork;
 
@@ -17,19 +15,51 @@ namespace PosManagement.Application.Services.Handelers.VendorServices
         {
             this.unitOfWork = unitOfWork;
         }
-        public async Task<Result<int>> Handle(CreateVendor request, CancellationToken cancellationToken)
+
+        public async Task<Result<int>> Handle(
+            CreateVendor request,
+            CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return Result<int>.Fail(Error.Validation("Vendor.EmptyName", "Vendor Name Is Required"));
-            var vendor = new Vendor
+            var vendors = await unitOfWork
+                .GetRepository<Vendor>()
+                .GetAllAsync(
+                    cancellationToken: cancellationToken);
+
+            bool vendorExists = vendors.Any(v =>
+                v.Name.Equals(
+                    request.Name,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (vendorExists)
             {
-                Name= request.Name
-            };
-            unitOfWork.GetRepository<Vendor>().Add(vendor);
-            await unitOfWork.SaveChangesAsync();
-            return vendor.Id ;
+                return Result<int>.Fail(
+                    Error.Conflict(
+                        "Vendor.AlreadyExists",
+                        "A vendor with this name already exists."));
+            }
 
+            Vendor vendor;
 
+            try
+            {
+                vendor = new Vendor(request.Name);
+            }
+            catch (ArgumentException ex)
+            {
+                return Result<int>.Fail(
+                    Error.Validation(
+                        "Vendor.InvalidName",
+                        ex.Message));
+            }
+
+            unitOfWork
+                .GetRepository<Vendor>()
+                .Add(vendor);
+
+            await unitOfWork
+                .SaveChangesAsync(cancellationToken);
+
+            return Result<int>.Ok(vendor.Id);
         }
     }
 }

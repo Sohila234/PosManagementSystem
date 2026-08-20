@@ -3,13 +3,11 @@ using PosManagement.Application.Common;
 using PosManagement.Application.Services.Commands;
 using PosManagement.Domain.Entities;
 using PosManagement.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace PosManagement.Application.Services.Handelers.PosDeviceSevices
 {
-    public class DeletePosDeviceCommandHandler : IRequestHandler<DeletePosDevice, Result<int>>
+    public class DeletePosDeviceCommandHandler
+        : IRequestHandler<DeletePosDevice, Result>
     {
         private readonly IUnitOfWork unitOfWork;
 
@@ -17,17 +15,32 @@ namespace PosManagement.Application.Services.Handelers.PosDeviceSevices
         {
             this.unitOfWork = unitOfWork;
         }
-        public async Task<Result<int>> Handle(DeletePosDevice request, CancellationToken cancellationToken)
-        {
-            var result = await unitOfWork.GetRepository<PosDevice>().GetByIdAsync(request.Id);
-            if (result == null)
-            {
-                return Result<int>.Fail(Error.NotFound("PosDevice.NotFound", "PosDevice not found."));
-            }
-            unitOfWork.GetRepository<PosDevice>().Delete(result);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-            return Result<int>.Ok(request.Id);
-        }
 
+        public async Task<Result> Handle(
+            DeletePosDevice request,
+            CancellationToken cancellationToken)
+        {
+            var device = await unitOfWork
+                .GetRepository<PosDevice>()
+                .GetByIdAsync(
+                    request.Id,
+                    cancellationToken);
+
+            if (device == null)
+            {
+                return Result.Fail(
+                    Error.NotFound(
+                        "PosDevice.NotFound",
+                        "PosDevice not found."));
+            }
+
+            unitOfWork
+                .GetRepository<PosDevice>()
+                .Delete(device);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return Result.Ok();
+        }
     }
 }

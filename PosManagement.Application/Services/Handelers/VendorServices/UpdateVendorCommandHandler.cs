@@ -3,13 +3,11 @@ using PosManagement.Application.Common;
 using PosManagement.Application.Services.Commands.Vendor;
 using PosManagement.Domain.Entities;
 using PosManagement.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace PosManagement.Application.Services.Handelers.VendorServices
 {
-    public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendor, Result>
+    public class UpdateVendorCommandHandler
+        : IRequestHandler<UpdateVendor, Result>
     {
         private readonly IUnitOfWork unitOfWork;
 
@@ -17,16 +15,68 @@ namespace PosManagement.Application.Services.Handelers.VendorServices
         {
             this.unitOfWork = unitOfWork;
         }
-        public async Task<Result> Handle(UpdateVendor request, CancellationToken cancellationToken)
+
+        public async Task<Result> Handle(
+            UpdateVendor request,
+            CancellationToken cancellationToken)
         {
-            var vendor = await unitOfWork.GetRepository<Vendor>().GetByIdAsync(request.Id, cancellationToken);
+            // 1. Check vendor exists
+            var vendor = await unitOfWork
+                .GetRepository<Vendor>()
+                .GetByIdAsync(
+                    request.Id,
+                    cancellationToken);
+
             if (vendor == null)
             {
-                return Result.Fail(Error.NotFound("Vendor.NotFound", "Vendor not found."));
+                return Result.Fail(
+                    Error.NotFound(
+                        "Vendor.NotFound",
+                        "Vendor not found."));
             }
-            vendor.Name= request.Name;
-            unitOfWork.GetRepository<Vendor>().Update(vendor);
-            await unitOfWork.SaveChangesAsync();
+
+            // 2. Check name uniqueness
+            var vendors = await unitOfWork
+                .GetRepository<Vendor>()
+                .GetAllAsync(
+                    cancellationToken: cancellationToken);
+
+            bool vendorExists = vendors.Any(v =>
+                v.Id != request.Id &&
+                v.Name.Equals(
+                    request.Name,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (vendorExists)
+            {
+                return Result.Fail(
+                    Error.Conflict(
+                        "Vendor.AlreadyExists",
+                        "A vendor with this name already exists."));
+            }
+
+            // 3. Change Domain data
+            try
+            {
+                vendor.ChangeName(request.Name);
+            }
+            catch (ArgumentException ex)
+            {
+                return Result.Fail(
+                    Error.Validation(
+                        "Vendor.InvalidName",
+                        ex.Message));
+            }
+
+            // 4. Update repository
+            unitOfWork
+                .GetRepository<Vendor>()
+                .Update(vendor);
+
+            // 5. Save
+            await unitOfWork
+                .SaveChangesAsync(cancellationToken);
+
             return Result.Ok();
         }
     }

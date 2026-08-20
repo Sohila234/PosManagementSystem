@@ -1,47 +1,117 @@
 ﻿using MediatR;
-using PosManagement.Application.Services.Commands.Manufacturer;
+using PosManagement.Application.Common;
 using PosManagement.Application.Services.Commands.Vendor;
-using PosManagement.Application.Services.Queries.ManufacturerQueries;
 using PosManagement.Application.Services.Queries.VendorQueries;
-using System.Xml.Serialization;
 
 namespace PosManagement.Api.Endpoints
 {
     public static class VendorEndPoint
     {
-        public static void MapVendorEndPoint (this IEndpointRouteBuilder builder)
+        public static void MapVendorEndPoint(
+            this IEndpointRouteBuilder builder)
         {
-            var group = builder.MapGroup("/api/Vendors")
-                           .WithTags("Vendors");
-            group.MapPost("/", async (CreateVendor Command, IMediator mediator, CancellationToken ct) =>
+            var group = builder
+                .MapGroup("/api/Vendors")
+                .WithTags("Vendors");
+
+            // POST - Create
+            group.MapPost("/", async (
+                CreateVendor command,
+                IMediator mediator,
+                CancellationToken ct) =>
             {
-                var result =await mediator.Send(Command, ct);
-                return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result.Errors);
+                var result = await mediator.Send(command, ct);
+
+                return result.IsSuccess
+                    ? Results.Ok(result.Data)
+                    : Results.BadRequest(result.Errors);
             });
-            group.MapGet("/", async (IMediator mediator, CancellationToken ct) =>
+
+            // GET - Get All
+            group.MapGet("/", async (
+                IMediator mediator,
+                CancellationToken ct) =>
             {
-                var result = await mediator.Send(new GetAllVendor(), ct);
-                return result.IsSuccess ? Results.Ok(result.Data) : Results.BadRequest(result.Errors);
+                var result = await mediator.Send(
+                    new GetAllVendor(),
+                    ct);
+
+                return result.IsSuccess
+                    ? Results.Ok(result.Data)
+                    : Results.BadRequest(result.Errors);
             });
-            group.MapGet("/{id:int}", async (int id, IMediator mediator, CancellationToken ct) =>
+
+            // GET - Get By Id
+            group.MapGet("/{id:int}", async (
+                int id,
+                IMediator mediator,
+                CancellationToken ct) =>
             {
-                var result = await mediator.Send(new GetVendorById(id), ct);
-                return result.IsSuccess ? Results.Ok(result.Data) : Results.NotFound(result.Errors);
+                var result = await mediator.Send(
+                    new GetVendorById(id),
+                    ct);
+
+                return result.IsSuccess
+                    ? Results.Ok(result.Data)
+                    : Results.NotFound(result.Errors);
             });
-            group.MapPut("/{id:int}", async (int id, UpdateVendor command, IMediator mediator, CancellationToken ct) =>
+
+            // PUT - Update
+            group.MapPut("/{id:int}", async (
+                int id,
+                UpdateVendor command,
+                IMediator mediator,
+                CancellationToken ct) =>
             {
                 if (id != command.Id)
-                    return Results.BadRequest("Vendor Not Found");
+                    return Results.BadRequest(
+                        "Vendor Id mismatch.");
 
-                var result = await mediator.Send(command, ct);
-                return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Errors);
+                var result = await mediator.Send(
+                    command,
+                    ct);
+
+                if (result.IsSuccess)
+                    return Results.NoContent();
+
+                if (result.Errors.Any(e =>
+                    e.Type == ErrorType.NotFound))
+                    return Results.NotFound(result.Errors);
+
+                if (result.Errors.Any(e =>
+                    e.Type == ErrorType.Conflict))
+                    return Results.Conflict(result.Errors);
+
+                if (result.Errors.Any(e =>
+                    e.Type == ErrorType.Validation))
+                    return Results.BadRequest(result.Errors);
+
+                return Results.BadRequest(result.Errors);
             });
-            group.MapDelete("/{id:int}", async (int id, IMediator mediator, CancellationToken ct) =>
+
+            // DELETE
+            group.MapDelete("/{id:int}", async (
+                int id,
+                IMediator mediator,
+                CancellationToken ct) =>
             {
-                var result = await mediator.Send(new DeleteVendor(id), ct);
-                return result.IsSuccess ? Results.NoContent() : Results.NotFound(result.Errors);
-            });
+                var result = await mediator.Send(
+                    new DeleteVendor(id),
+                    ct);
 
+                if (result.IsSuccess)
+                    return Results.NoContent();
+
+                if (result.Errors.Any(e =>
+                    e.Type == ErrorType.NotFound))
+                    return Results.NotFound(result.Errors);
+
+                if (result.Errors.Any(e =>
+                    e.Type == ErrorType.Conflict))
+                    return Results.Conflict(result.Errors);
+
+                return Results.BadRequest(result.Errors);
+            });
         }
     }
 }
